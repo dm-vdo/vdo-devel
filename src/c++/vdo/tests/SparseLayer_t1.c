@@ -23,9 +23,9 @@ enum {
   RANGE_COUNT  = 3,
 };
 
-const char    *testFile = "sparse_test_file";
-char          *testData = NULL;
-PhysicalLayer *layer    = NULL;
+static const char    *testFile = "sparse_test_file";
+static char          *testData = NULL;
+static PhysicalLayer *layer    = NULL;
 
 /**
  * Initialize the test data buffer and sparse layer.

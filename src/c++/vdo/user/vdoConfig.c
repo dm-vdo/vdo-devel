@@ -196,7 +196,10 @@ static int configureAndWriteVDO(UserVDO                   *vdo,
     return result;
   }
 
-  setDerivedSlabParameters(vdo);
+  result = setDerivedSlabParameters(vdo);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
 
   if (vdo->states.vdo.config.logical_blocks == 0) {
     block_count_t dataBlocks = vdo->states.slab_depot.slab_config.data_blocks * vdo->slabCount;

@@ -10,6 +10,21 @@
 #include <asm/byteorder.h>
 #include <linux/types.h>
 
+/*
+ * Unaligned-safe pointer types. __attribute__((aligned(1))) tells GCC and
+ * UBSAN that a pointer to this type may have any alignment, suppressing the
+ * misalignment check without hiding the dereference from the sanitizer.
+ * We dereference through these typedefs and then call the value form of the
+ * byte-order macros (__le32_to_cpu rather than __le32_to_cpup) so that no
+ * unaligned pointer ever escapes into a system header.
+ */
+typedef __le16 __attribute__((aligned(1))) unaligned_le16;
+typedef __le32 __attribute__((aligned(1))) unaligned_le32;
+typedef __le64 __attribute__((aligned(1))) unaligned_le64;
+typedef __be16 __attribute__((aligned(1))) unaligned_be16;
+typedef __be32 __attribute__((aligned(1))) unaligned_be32;
+typedef __be64 __attribute__((aligned(1))) unaligned_be64;
+
 /* Type safe comparison macros, similar to the ones in linux/minmax.h. */
 
 /*
@@ -63,62 +78,76 @@
 /* Defined in asm/unaligned.h */
 static inline uint16_t get_unaligned_le16(const void *p)
 {
-	return __le16_to_cpup((const __le16 *)p);
+	return __le16_to_cpu(*(const unaligned_le16 *)p);
 }
 
 static inline uint32_t get_unaligned_le32(const void *p)
 {
-	return __le32_to_cpup((const __le32 *)p);
+	return __le32_to_cpu(*(const unaligned_le32 *)p);
 }
 
 static inline uint64_t get_unaligned_le64(const void *p)
 {
-	return __le64_to_cpup((const __le64 *)p);
+	return __le64_to_cpu(*(const unaligned_le64 *)p);
 }
 
 static inline uint16_t get_unaligned_be16(const void *p)
 {
-	return __be16_to_cpup((const __be16 *)p);
+	return __be16_to_cpu(*(const unaligned_be16 *)p);
 }
 
 static inline uint32_t get_unaligned_be32(const void *p)
 {
-	return __be32_to_cpup((const __be32 *)p);
+	return __be32_to_cpu(*(const unaligned_be32 *)p);
 }
 
 static inline uint64_t get_unaligned_be64(const void *p)
 {
-	return __be64_to_cpup((const __be64 *)p);
+	return __be64_to_cpu(*(const unaligned_be64 *)p);
 }
 
 static inline void put_unaligned_le16(uint16_t val, void *p)
 {
-	*((__le16 *)p) = __cpu_to_le16(val);
+	*(unaligned_le16 *)p = __cpu_to_le16(val);
 }
 
 static inline void put_unaligned_le32(uint32_t val, void *p)
 {
-	*((__le32 *)p) = __cpu_to_le32(val);
+	*(unaligned_le32 *)p = __cpu_to_le32(val);
 }
 
 static inline void put_unaligned_le64(uint64_t val, void *p)
 {
-	*((__le64 *)p) = __cpu_to_le64(val);
+	*(unaligned_le64 *)p = __cpu_to_le64(val);
 }
 
 static inline void put_unaligned_be16(uint16_t val, void *p)
 {
-	*((__be16 *)p) = __cpu_to_be16(val);
+	*(unaligned_be16 *)p = __cpu_to_be16(val);
 }
 
 static inline void put_unaligned_be32(uint32_t val, void *p)
 {
-	*((__be32 *)p) = __cpu_to_be32(val);
+	*(unaligned_be32 *)p = __cpu_to_be32(val);
 }
 
 static inline void put_unaligned_be64(uint64_t val, void *p)
 {
-	*((__be64 *)p) = __cpu_to_be64(val);
+	*(unaligned_be64 *)p = __cpu_to_be64(val);
 }
+
+
+/* Native byte order */
+#define get_unaligned(ptr) __extension__({			\
+	typeof(*(ptr)) __attribute__((aligned(1))) *__gu_p =	\
+		(typeof(*(ptr)) __attribute__((aligned(1))) *)(ptr);\
+	*__gu_p;						\
+})
+
+#define put_unaligned(val, ptr) __extension__({			\
+	typeof(*(ptr)) __attribute__((aligned(1))) *__pu_p =	\
+		(typeof(*(ptr)) __attribute__((aligned(1))) *)(ptr);\
+	*__pu_p = (val);					\
+})
 
 #endif /* LINUX_UNALIGNED_H */

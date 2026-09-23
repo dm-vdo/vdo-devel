@@ -701,6 +701,10 @@ static bool auditVDO(void)
   if (result != VDO_SUCCESS) {
     return false;
   }
+  if (slabSummaryEntries == NULL) {
+    warnx("Could not read slab summary: zone_count is zero");
+    return false;
+  }
 
   // Audit stored versus counted mapped logical blocks.
   block_count_t savedLBNCount
@@ -750,9 +754,7 @@ int main(int argc, char *argv[])
   struct slab_depot_state_2_0 depot = vdo->states.slab_depot;
   physical_block_number_t slabOrigin = depot.first_block;
   slabDataBlocks = depot.slab_config.data_blocks;
-  slab_count_t slabCount = vdo_compute_slab_count(depot.first_block,
-                                                  depot.last_block,
-                                                  vdo->slabSizeShift);
+  slab_count_t slabCount = vdo->slabCount;
   for (slab_count_t i = 0; i < slabCount; i++) {
     SlabAudit *audit = &slabs[i];
     audit->slabNumber = i;

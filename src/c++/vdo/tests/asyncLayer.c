@@ -328,7 +328,7 @@ static void drainBIOQueue(AsyncLayer *asyncLayer)
     mutex_unlock(&asyncLayer->mutex);
     while (!bio_list_empty(&bios)) {
       struct bio *bio = bio_list_pop(&bios);
-      bio->bi_status = processBIO(bio);
+      bio->bi_status = errno_to_blk_status(processBIO(bio));
       bio->bi_end_io(bio);
     }
 

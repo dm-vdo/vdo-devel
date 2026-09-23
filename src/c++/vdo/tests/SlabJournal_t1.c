@@ -694,7 +694,7 @@ static void verifyBlock(sequence_number_t sequenceNumber, uint16_t entryCount)
   struct slab_journal_block_header  header;
   struct packed_slab_journal_block *block
     = (struct packed_slab_journal_block *) buffer;
-  vdo_unpack_slab_journal_block_header(&block->header, &header);
+  VDO_ASSERT_SUCCESS(vdo_unpack_slab_journal_block_header(&block->header, &header));
 
   CU_ASSERT_EQUAL(expectedHead, header.head);
   CU_ASSERT_EQUAL(sequenceNumber, header.sequence_number);
@@ -828,7 +828,7 @@ static void testBlockHeaderPacking(void)
   // Packing and unpacking must preserve all field values.
   vdo_pack_slab_journal_block_header(&header, &packed);
   struct slab_journal_block_header unpacked;
-  vdo_unpack_slab_journal_block_header(&packed, &unpacked);
+  VDO_ASSERT_SUCCESS(vdo_unpack_slab_journal_block_header(&packed, &unpacked));
 
   CU_ASSERT_EQUAL(header.head, unpacked.head);
   CU_ASSERT_EQUAL(header.sequence_number, unpacked.sequence_number);

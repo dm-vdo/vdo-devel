@@ -204,7 +204,7 @@ static void verifySlabJournalEntries(void)
     struct packed_slab_journal_block *block = (struct packed_slab_journal_block *) buffer;
     struct slab_journal_block_header header;
 
-    vdo_unpack_slab_journal_block_header(&block->header, &header);
+    VDO_ASSERT_SUCCESS(vdo_unpack_slab_journal_block_header(&block->header, &header));
     CU_ASSERT_EQUAL(header.sequence_number, sequenceNumber++);
     CU_ASSERT_EQUAL(header.entry_count, min(totalEntries, slab->journal.entries_per_block));
     for (journal_entry_count_t i = 0; i < header.entry_count; i++) {

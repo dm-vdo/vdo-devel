@@ -267,7 +267,8 @@ static DataStream *makeBlockStream(char *arg)
   if (strlen(arg) >= TAG_SIZE) {
     errx(2, "the tag string '%s' is too long", arg);
   }
-  strncpy(pbs->tag, arg, TAG_SIZE);
+  memset(pbs->tag, 0, TAG_SIZE);
+  memcpy(pbs->tag, arg, strlen(arg));
   if ((pbs->dedupe < 0) || (pbs->dedupe > DEDUPE_MODULUS)) {
     errx(2, "the dedupe fraction (%f) is invalid", dedupe);
   }

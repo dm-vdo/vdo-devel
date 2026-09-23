@@ -94,7 +94,11 @@ int loadVDOWithGeometry(PhysicalLayer           *layer,
     }
   }
 
-  setDerivedSlabParameters(vdo);
+  result = setDerivedSlabParameters(vdo);
+  if (result != VDO_SUCCESS) {
+    freeUserVDO(&vdo);
+    return result;
+  }
 
   *vdoPtr = vdo;
   return VDO_SUCCESS;
@@ -182,13 +186,25 @@ int saveVDO(UserVDO *vdo, bool saveGeometry)
 }
 
 /**********************************************************************/
-void setDerivedSlabParameters(UserVDO *vdo)
+int setDerivedSlabParameters(UserVDO *vdo)
 {
-  vdo->slabSizeShift = ilog2(vdo->states.vdo.config.slab_size);
+  block_count_t slab_size = vdo->states.vdo.config.slab_size;
+
+  if (!is_power_of_2(slab_size) || (slab_size > MAX_VDO_SLAB_BLOCKS)) {
+    warnx("slab_size (%llu) is not a power of two in range [1, %u]",
+          (unsigned long long) slab_size, MAX_VDO_SLAB_BLOCKS);
+    return VDO_BAD_CONFIGURATION;
+  }
+
+  vdo->slabSizeShift = ilog2(slab_size);
   vdo->slabCount = vdo_compute_slab_count(vdo->states.slab_depot.first_block,
                                           vdo->states.slab_depot.last_block,
                                           vdo->slabSizeShift);
+  if (vdo->slabCount == 0)
+    // reason already logged
+    return VDO_BAD_CONFIGURATION;
   vdo->slabOffsetMask = (1ULL << vdo->slabSizeShift) - 1;
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/

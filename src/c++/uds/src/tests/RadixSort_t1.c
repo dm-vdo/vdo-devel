@@ -46,7 +46,8 @@ static const u8 **sortAndVerify(const u8 *keys[], unsigned int count,
   // Make a copy of the keys we're going to sort.
   u8 *bytes;
   UDS_ASSERT_SUCCESS(vdo_allocate(count * sizeof(keys[0]), "keys", &bytes));
-  memcpy(bytes, keys, count * sizeof(keys[0]));
+  if (count > 0)
+    memcpy(bytes, keys, count * sizeof(keys[0]));
   const u8 **copy = (const u8 **) bytes;
 
   // Sort and check that the keys are sorted.
@@ -61,7 +62,8 @@ static const u8 **sortAndVerify(const u8 *keys[], unsigned int count,
   assertOneToOne(copy, keys, count);
 
   // Copy the sorted keys back for our caller to use.
-  memcpy(copy, keys, count * sizeof(keys[0]));
+  if (count > 0)
+    memcpy(copy, keys, count * sizeof(keys[0]));
   return copy;
 }
 

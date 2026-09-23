@@ -146,7 +146,7 @@ int __must_check saveVDO(UserVDO *vdo, bool saveGeometry);
  *
  * @param vdo  The vdo
  **/
-void setDerivedSlabParameters(UserVDO *vdo);
+int setDerivedSlabParameters(UserVDO *vdo);
 
 /**
  * Get the slab number for a pbn.

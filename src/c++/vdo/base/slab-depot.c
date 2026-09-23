@@ -2500,10 +2500,13 @@ static void finish_loading_journal(struct vdo_completion *completion)
 	struct packed_slab_journal_block *block = (struct packed_slab_journal_block *) vio->data;
 	struct slab_journal_block_header header;
 
-	vdo_unpack_slab_journal_block_header(&block->header, &header);
-
-	/* FIXME: should it be an error if the following conditional fails? */
-	if ((header.metadata_type == VDO_METADATA_SLAB_JOURNAL) &&
+	/*
+	 * A bad has_block_map_increments byte means the block is unreadable;
+	 * treat it the same as a nonce mismatch and leave the journal empty.
+	 * FIXME: should any of these mismatches be treated as errors?
+	 */
+	if (vdo_unpack_slab_journal_block_header(&block->header, &header) == VDO_SUCCESS &&
+	    (header.metadata_type == VDO_METADATA_SLAB_JOURNAL) &&
 	    (header.nonce == slab->allocator->nonce)) {
 		journal->tail = header.sequence_number + 1;
 
@@ -2934,9 +2937,9 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			(struct packed_slab_journal_block *) block_data;
 		struct slab_journal_block_header header;
 
-		vdo_unpack_slab_journal_block_header(&block->header, &header);
-
-		if ((header.nonce != slab->allocator->nonce) ||
+		result = vdo_unpack_slab_journal_block_header(&block->header, &header);
+		if (result != VDO_SUCCESS ||
+		    (header.nonce != slab->allocator->nonce) ||
 		    (header.metadata_type != VDO_METADATA_SLAB_JOURNAL) ||
 		    (header.sequence_number != sequence) ||
 		    (header.entry_count > journal->entries_per_block) ||
@@ -4211,6 +4214,9 @@ static int allocate_components(struct slab_depot *depot,
 
 	slab_count = vdo_compute_slab_count(depot->first_block, depot->last_block,
 					    depot->slab_size_shift);
+	if (slab_count == 0)
+		// vdo_compute_slab_count logged the error
+		return VDO_BAD_CONFIGURATION;
 	if (thread_config->physical_zone_count > slab_count) {
 		return vdo_log_error_strerror(VDO_BAD_CONFIGURATION,
 					      "%u physical zones exceeds slab count %u",
@@ -4785,6 +4791,9 @@ int vdo_prepare_to_grow_slab_depot(struct slab_depot *depot,
 	new_slab_count = vdo_compute_slab_count(depot->first_block,
 						new_state.last_block,
 						depot->slab_size_shift);
+	if (new_slab_count == 0)
+		// vdo_compute_slab_count logged the error
+		return VDO_BAD_CONFIGURATION;
 	if (new_slab_count <= depot->slab_count)
 		return vdo_log_error_strerror(VDO_INCREMENT_TOO_SMALL,
 					      "Depot can only grow");

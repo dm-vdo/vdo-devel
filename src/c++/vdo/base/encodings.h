@@ -25,6 +25,7 @@
 #endif /* not __KERNEL__ */
 
 #include "constants.h"
+#include "status-codes.h"
 #include "types.h"
 
 /*
@@ -511,7 +512,7 @@ struct packed_slab_journal_block_header {
 	/* 8-bit metadata type (should always be two, for the slab journal) */
 	u8 metadata_type;
 	/* Whether this block contains block map increments */
-	bool has_block_map_increments;
+	u8 has_block_map_increments;
 	/* 16-bit count of the entries encoded in the block */
 	__le16 entry_count;
 } __packed;
@@ -1062,20 +1063,9 @@ vdo_unpack_recovery_block_header(const struct packed_journal_header *packed)
 	};
 }
 
-/**
- * vdo_compute_slab_count() - Compute the number of slabs a depot with given parameters would have.
- * @first_block: PBN of the first data block.
- * @last_block: PBN of the last data block.
- * @slab_size_shift: Exponent for the number of blocks per slab.
- *
- * Return: The number of slabs.
- */
-static inline slab_count_t vdo_compute_slab_count(physical_block_number_t first_block,
-						  physical_block_number_t last_block,
-						  unsigned int slab_size_shift)
-{
-	return (slab_count_t) ((last_block - first_block) >> slab_size_shift);
-}
+slab_count_t vdo_compute_slab_count(physical_block_number_t first_block,
+				    physical_block_number_t last_block,
+				    unsigned int slab_size_shift);
 
 int __must_check vdo_configure_slab_depot(const struct partition *partition,
 					  struct slab_config slab_config,
@@ -1195,20 +1185,27 @@ vdo_pack_slab_journal_block_header(const struct slab_journal_block_header *heade
  *                                          header.
  * @packed: The packed header to decode.
  * @header: The header into which to unpack the values.
+ *
+ * Return: VDO_SUCCESS, or VDO_CORRUPT_JOURNAL if has_block_map_increments is
+ *         not a valid boolean (i.e. not 0 or 1).
  */
-static inline void
+static inline int __must_check
 vdo_unpack_slab_journal_block_header(const struct packed_slab_journal_block_header *packed,
 				     struct slab_journal_block_header *header)
 {
+	if (packed->has_block_map_increments > 1)
+		return VDO_CORRUPT_JOURNAL;
+
 	*header = (struct slab_journal_block_header) {
 		.head = __le64_to_cpu(packed->head),
 		.sequence_number = __le64_to_cpu(packed->sequence_number),
 		.nonce = __le64_to_cpu(packed->nonce),
 		.entry_count = __le16_to_cpu(packed->entry_count),
 		.metadata_type = packed->metadata_type,
-		.has_block_map_increments = packed->has_block_map_increments,
+		.has_block_map_increments = (packed->has_block_map_increments != 0),
 	};
 	vdo_unpack_journal_point(&packed->recovery_point, &header->recovery_point);
+	return VDO_SUCCESS;
 }
 
 /**

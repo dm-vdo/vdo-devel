@@ -365,7 +365,7 @@ static void writeSlabJournalBlocks(void)
 
     vdo_pack_slab_journal_block_header(&header, &block->header);
     struct slab_journal_block_header decoded;
-    vdo_unpack_slab_journal_block_header(&block->header, &decoded);
+    VDO_ASSERT_SUCCESS(vdo_unpack_slab_journal_block_header(&block->header, &decoded));
     UDS_ASSERT_EQUAL_BYTES(&header, &decoded, sizeof(decoded));
 
     VDO_ASSERT_SUCCESS(layer->writer(layer, pbn + i, 1, buffer));

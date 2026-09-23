@@ -34,6 +34,8 @@ static const u64 RECOVERY_COUNT_MASK = 0xff;
 #define RECOVERY_JOURNAL_RESERVED_BLOCKS				\
 	((MAXIMUM_VDO_USER_VIOS / RECOVERY_JOURNAL_ENTRIES_PER_BLOCK) + 2)
 
+#define MAX_SEQUENCE_NUMBER ((sequence_number_t)((1ULL << 48) - 1))
+
 /**
  * DOC: Lock Counters.
  *
@@ -637,8 +639,8 @@ static int __must_check initialize_lock_counter(struct recovery_journal *journal
  */
 static void set_journal_tail(struct recovery_journal *journal, sequence_number_t tail)
 {
-	/* VDO does not support sequence numbers above 1 << 48 in the slab journal. */
-	if (tail >= (1ULL << 48))
+	/* VDO does not support sequence numbers above MAX_SEQUENCE_NUMBER. */
+	if (tail > MAX_SEQUENCE_NUMBER)
 		enter_journal_read_only_mode(journal, VDO_JOURNAL_OVERFLOW);
 
 	journal->tail = tail;
@@ -726,6 +728,14 @@ int vdo_decode_recovery_journal(struct recovery_journal_state_7_0 state, nonce_t
 	journal->logical_blocks_used = state.logical_blocks_used;
 	journal->block_map_data_blocks = state.block_map_data_blocks;
 	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
+
+	if (state.journal_start > MAX_SEQUENCE_NUMBER) {
+		vdo_free(journal);
+		return vdo_log_error_strerror(UDS_CORRUPT_DATA,
+					      "invalid recovery journal_start %llu",
+					      (unsigned long long) state.journal_start);
+	}
+
 	set_journal_tail(journal, state.journal_start);
 	initialize_journal_state(journal);
 	/* TODO: this will have to change if we make initial resume of a VDO a real resume */
