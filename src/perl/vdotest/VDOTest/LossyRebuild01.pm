@@ -1,14 +1,14 @@
 ##
 # Test VDO rebuild behavior when the device dies unexpectedly.
 #
-# This test uses the "dory" device without a data cache to suddenly stop the
+# This test uses the "lossy" device without a data cache to suddenly stop the
 # storage device from doing writes.  It expects the rebuild to succeed, and for
 # the data to be either the "old" data (zeroes) or the "new" data that we were
 # trying to write.
 #
 # $Id$
 ##
-package VDOTest::DoryRebuild01;
+package VDOTest::LossyRebuild01;
 
 use strict;
 use warnings FATAL => qw(all);
@@ -20,7 +20,7 @@ use Permabit::Utils qw(timeToText);
 use Permabit::VDOTask::SliceOperation;
 use Time::HiRes qw(time);
 
-use base qw(VDOTest::DoryBase);
+use base qw(VDOTest::LossyBase);
 
 my $log = Log::Log4perl->get_logger(__PACKAGE__);
 
@@ -32,8 +32,8 @@ our %PROPERTIES
      compressFractions => [0, 0.45, 0.9],
      # @ple Dedupe settings to try
      dedupeFractions   => [0, 0.6, 0.9],
-     # @ple Dory device options.
-     doryOptions       => { cacheBlocks => 0, },
+     # @ple Lossy device options.
+     lossyOptions      => { cacheBlocks => 0, },
      # @ple Time to write each dataset before a rebuild, in seconds
      timePerSlice      => 30,
     );
@@ -43,7 +43,7 @@ our %PROPERTIES
 ##
 sub testForgetful {
   my ($self) = assertNumArgs(1, @_);
-  my $doryDevice = $self->getDoryDevice();
+  my $lossyDevice = $self->getLossyDevice();
   my $vdoDevice  = $self->getDevice();
   my $vdoMachine = $vdoDevice->getMachine();
 
@@ -85,7 +85,7 @@ sub testForgetful {
       $self->getAsyncTasks()->addTask($task);
       $startTime = time();
       $task->start();
-      $self->stopDoryDelayed($self->{timePerSlice});
+      $self->stopLossyDelayed($self->{timePerSlice});
       $task->result();
       $duration = time() - $startTime;
       $log->info("Wrote for " . timeToText($duration));
@@ -93,7 +93,7 @@ sub testForgetful {
       # Restart and verify.
       $vdoDevice->stop();
       $vdoMachine->changeKernelLogErrorChecks(add => ["readonly"]);
-      $doryDevice->restart();
+      $lossyDevice->restart();
       $vdoDevice->recover();
       $smallSlice->verify();
       $largeSlice->verify();
