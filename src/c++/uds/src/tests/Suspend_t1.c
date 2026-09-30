@@ -18,7 +18,10 @@ static struct block_device *testDevice;
 static struct uds_parameters params;
 static struct uds_index_session *indexSession;
 
-enum { NUM_CHAPTERS = 10 };
+enum {
+  NUM_CHAPTERS = 10,
+  REBUILD_CHAPTERS = 15,
+};
 
 /**********************************************************************/
 static void postChunks(struct uds_index_session *indexSession,
@@ -161,7 +164,7 @@ static void rebuildThread(void *arg)
 /**********************************************************************/
 static void suspendRebuildTest(void)
 {
-  setupIndexAndSession(NUM_CHAPTERS, true);
+  setupIndexAndSession(REBUILD_CHAPTERS, true);
 
   /*
    * At this point we have a saved volume containing several chapters.
@@ -196,7 +199,7 @@ static void suspendRebuildTest(void)
 
   UDS_ASSERT_SUCCESS(uds_suspend_index_session(indexSession, false));
   int suspendChapters = atomic_read_acquire(&chapters_replayed);
-  CU_ASSERT((suspendChapters - startChapters) < NUM_CHAPTERS);
+  CU_ASSERT((suspendChapters - startChapters) < REBUILD_CHAPTERS);
   for (int i = 0; i < 10; i++) {
     sleep_for(ms_to_ktime(25));
     if (suspendChapters == atomic_read_acquire(&chapters_replayed)) {
@@ -231,7 +234,7 @@ static void suspendRebuildTest(void)
   UDS_ASSERT_SUCCESS(uds_suspend_index_session(indexSession, false));
 
   suspendChapters = atomic_read_acquire(&chapters_replayed);
-  CU_ASSERT((suspendChapters - startChapters) < NUM_CHAPTERS);
+  CU_ASSERT((suspendChapters - startChapters) < REBUILD_CHAPTERS);
   for (int i = 0; i < 10; i++) {
     sleep_for(ms_to_ktime(25));
     if (suspendChapters == atomic_read_acquire(&chapters_replayed)) {
@@ -248,7 +251,7 @@ static void suspendRebuildTest(void)
   // the index. If the index uses more than one zone, some chunks may
   // spill over into the open chapter and not get rebuilt.
   unsigned long blocksToCheck
-    = (NUM_CHAPTERS - 1) * getBlocksPerChapter(indexSession);
+    = (REBUILD_CHAPTERS - 1) * getBlocksPerChapter(indexSession);
   postChunks(indexSession, 0, blocksToCheck, UDS_SUCCESS);
   struct uds_index_stats indexStats;
   UDS_ASSERT_SUCCESS(uds_get_index_session_stats(indexSession, &indexStats));
