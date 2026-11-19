@@ -27,7 +27,7 @@ checkin:
 .PHONY: jenkins
 jenkins:
 	$(RSVP_HOST) ./dmtests.pl $(TEST_ARGS) \
-	  --scale --clientClass=FARM\\,FEDORA43 $@
+	  --scale --clientClass=FARM\\,FEDORA44 $@
 
 .PHONY:	dmtests
 dmtests: checkin
