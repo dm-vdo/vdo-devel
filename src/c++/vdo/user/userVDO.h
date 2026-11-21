@@ -142,7 +142,8 @@ int __must_check saveVDO(UserVDO *vdo, bool saveGeometry);
 
 /**
  * Set the slab parameters which are derived from the vdo config and the
- * slab config.
+ * slab config. The caller must check vdo->slabCount afterward; it will be
+ * left at 0 if the parameters were invalid.
  *
  * @param vdo  The vdo
  **/

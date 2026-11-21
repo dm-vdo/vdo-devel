@@ -95,6 +95,11 @@ int loadVDOWithGeometry(PhysicalLayer           *layer,
   }
 
   setDerivedSlabParameters(vdo);
+  if (vdo->slabCount == 0) {
+    warnx("Could not determine slab count");
+    freeUserVDO(&vdo);
+    return VDO_BAD_CONFIGURATION;
+  }
 
   *vdoPtr = vdo;
   return VDO_SUCCESS;
@@ -184,7 +189,16 @@ int saveVDO(UserVDO *vdo, bool saveGeometry)
 /**********************************************************************/
 void setDerivedSlabParameters(UserVDO *vdo)
 {
-  vdo->slabSizeShift = ilog2(vdo->states.vdo.config.slab_size);
+  block_count_t slab_size = vdo->states.vdo.config.slab_size;
+
+  if (!is_power_of_2(slab_size) || (slab_size > MAX_VDO_SLAB_BLOCKS)) {
+    warnx("slab_size (%llu) is not a power of two up to %u",
+          (unsigned long long) slab_size, MAX_VDO_SLAB_BLOCKS);
+    vdo->slabCount = 0;
+    return;
+  }
+
+  vdo->slabSizeShift = ilog2(slab_size);
   vdo->slabCount = vdo_compute_slab_count(vdo->states.slab_depot.first_block,
                                           vdo->states.slab_depot.last_block,
                                           vdo->slabSizeShift);

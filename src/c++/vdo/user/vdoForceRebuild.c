@@ -89,16 +89,17 @@ int main(int argc, char *argv[])
 
   char *filename = argv[optind];
   PhysicalLayer *layer;
+  char buf[VDO_MAX_ERROR_MESSAGE_SIZE];
   // Passing 0 physical blocks will make a filelayer to fit the file.
   result = makeFileLayer(filename, 0, &layer);
   if (result != VDO_SUCCESS) {
-    errx(result, "makeFileLayer failed on '%s'", filename);
+    errx(1, "makeFileLayer failed on '%s': %s",
+         filename, uds_string_error(result, buf, sizeof(buf)));
   }
 
   result = forceVDORebuild(layer);
   if (result != VDO_SUCCESS) {
-    char buf[VDO_MAX_ERROR_MESSAGE_SIZE];
-    errx(result, "forceRebuild failed on '%s': %s",
+    errx(1, "forceRebuild failed on '%s': %s",
          filename, uds_string_error(result, buf, sizeof(buf)));
   }
 

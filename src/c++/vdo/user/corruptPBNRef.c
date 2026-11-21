@@ -153,6 +153,10 @@ static int corrupt(UserVDO *vdo)
           uds_string_error(result, errBuf, VDO_MAX_ERROR_MESSAGE_SIZE));
     return result;
   }
+  if (summaryEntries == NULL) {
+    warnx("Could not read slab summary: zone_count is zero");
+    return VDO_BAD_CONFIGURATION;
+  }
 
   for (logical_block_number_t lbn = 0;
        lbn < vdo->states.vdo.config.logical_blocks;

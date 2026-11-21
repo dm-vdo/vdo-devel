@@ -30,7 +30,7 @@ static inline const char *vdo_bool_to_string(bool value)
  * freeing the allocated memory.
  */
 int __must_check vdo_alloc_sprintf(const char *what, char **strp, const char *fmt, ...)
-	__printf(3, 4);
+	__printf(3, 4) __attribute__((nonnull(3)));
 
 #endif /* (! __KERNEL) or TEST_INTERNAL */
 #ifdef TEST_INTERNAL

@@ -701,6 +701,15 @@ static bool auditVDO(void)
   if (result != VDO_SUCCESS) {
     return false;
   }
+  if (slabSummaryEntries == NULL) {
+    // A zero zone count means the slab summary was never populated by a
+    // real load, which is normal for a volume that was never resumed by
+    // the kernel driver. There is nothing further to audit.
+    //
+    // FIXME: check for the combination of a zero zone count but some
+    // blocks allocated, which would indicate real inconsistency.
+    return true;
+  }
 
   // Audit stored versus counted mapped logical blocks.
   block_count_t savedLBNCount
@@ -750,9 +759,7 @@ int main(int argc, char *argv[])
   struct slab_depot_state_2_0 depot = vdo->states.slab_depot;
   physical_block_number_t slabOrigin = depot.first_block;
   slabDataBlocks = depot.slab_config.data_blocks;
-  slab_count_t slabCount = vdo_compute_slab_count(depot.first_block,
-                                                  depot.last_block,
-                                                  vdo->slabSizeShift);
+  slab_count_t slabCount = vdo->slabCount;
   for (slab_count_t i = 0; i < slabCount; i++) {
     SlabAudit *audit = &slabs[i];
     audit->slabNumber = i;
